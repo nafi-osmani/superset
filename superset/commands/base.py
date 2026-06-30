@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
@@ -41,6 +42,71 @@ class BaseCommand(ABC):
         Will raise exception if validation fails
         :raises: CommandException
         """
+
+
+class BaseBulkDeleteCommand(BaseCommand):
+    """Shared base for bulk-delete commands that follow the pattern:
+
+    1. Accept a list of model IDs.
+    2. Validate that all models exist (raise *not_found_error*).
+    3. Optionally check ownership (raise *forbidden_error*).
+    4. Delete via the DAO.
+
+    Subclasses must set:
+      - ``dao``: DAO class with ``find_by_ids`` and ``delete`` methods.
+      - ``not_found_error``: exception class raised when models are missing.
+
+    Subclasses may set:
+      - ``forbidden_error``: exception class raised when ownership check fails.
+        When set, ownership is validated for each model. When ``None``,
+        the ownership check is skipped.
+    """
+
+    dao: Any = None
+    not_found_error: type[Exception]
+    forbidden_error: type[Exception] | None = None
+
+    def __init__(self, model_ids: list[int]) -> None:
+        self._model_ids = model_ids
+        self._models: Optional[list[Any]] = None
+
+    def run(self) -> None:
+        from superset.utils.decorators import on_error, transaction
+
+        @transaction(
+            on_error=partial(on_error, reraise=self._get_delete_failed_error())
+        )
+        def _run() -> None:
+            self.validate()
+            assert self._models
+            self.dao.delete(self._models)
+
+        _run()
+
+    def validate(self) -> None:
+        self._models = self.dao.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
+            raise self.not_found_error()
+
+        if self.forbidden_error is not None:
+            from superset import security_manager
+            from superset.exceptions import SupersetSecurityException
+
+            for model in self._models:
+                try:
+                    security_manager.raise_for_ownership(model)
+                except SupersetSecurityException as ex:
+                    raise self.forbidden_error() from ex
+
+    def _get_delete_failed_error(self) -> type[Exception]:
+        """Return the error to re-raise on transaction failure.
+
+        Defaults to the generic DeleteFailedError. Subclasses that define a
+        custom failure error can override this.
+        """
+        from superset.commands.exceptions import DeleteFailedError
+
+        return DeleteFailedError
 
 
 class CreateMixin:  # pylint: disable=too-few-public-methods
