@@ -1302,7 +1302,7 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
-ENABLE_CORS = True
+ENABLE_CORS = False
 CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
@@ -1791,7 +1791,7 @@ SMTP_STARTTLS = True
 SMTP_SSL = False
 SMTP_USER = "superset"
 SMTP_PORT = 25
-SMTP_PASSWORD = "superset"  # noqa: S105
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
 # If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
 # default system root CA certificates.
@@ -1826,7 +1826,7 @@ FAB_API_KEY_PREFIXES = ["sst_"]
 TROUBLESHOOTING_LINK = ""
 
 # CSRF token timeout, set to None for a token that never expires
-WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
+WTF_CSRF_TIME_LIMIT = int(timedelta(hours=24).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
 # Datasource. It will be placed at the bottom of permissions errors.
