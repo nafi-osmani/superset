@@ -93,6 +93,50 @@ pre-commit run check-yaml --files .github/workflows/check_db_migration_conflict.
 ]
 
 
+def check_github_ready(repo: str) -> bool:
+    """Verify Issues are enabled and gh is authenticated."""
+    result = subprocess.run(
+        ["gh", "api", f"repos/{repo}", "--jq", ".has_issues"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"Cannot access repo {repo}. Run: gh auth login", file=sys.stderr)
+        return False
+
+    if result.stdout.strip() != "true":
+        print(
+            f"GitHub Issues are disabled on {repo}.\n"
+            f"Enable them at: https://github.com/{repo}/settings\n"
+            "  Settings → General → Features → Issues → check Enable",
+            file=sys.stderr,
+        )
+        return False
+
+    label_check = subprocess.run(
+        [
+            "gh",
+            "label",
+            "create",
+            "devin-autofix",
+            "--repo",
+            repo,
+            "--color",
+            "0E8A16",
+            "--description",
+            "Trigger Devin auto-remediation",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if label_check.returncode != 0 and "already exists" not in label_check.stderr.lower():
+        print(f"Note: could not create label (may already exist): {label_check.stderr}")
+
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create seed issues for Devin demo")
     parser.add_argument(
@@ -111,6 +155,9 @@ def main() -> int:
         help="Print commands without executing",
     )
     args = parser.parse_args()
+
+    if not args.dry_run and not check_github_ready(args.repo):
+        return 1
 
     created: list[dict[str, str | int]] = []
 

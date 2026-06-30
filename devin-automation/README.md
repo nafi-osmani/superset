@@ -34,9 +34,24 @@ GitHub Issue (labeled devin-autofix)
 | `DEVIN_ORG_ID` | Organization ID from Devin Settings |
 | `GITHUB_TOKEN` | PAT with `repo` + `issues:write` (passed to Devin sessions) |
 | `GITHUB_WEBHOOK_SECRET` | HMAC secret for webhook verification |
-| `GITHUB_REPO` | Target repo, e.g. `your-user/superset` |
+| `GITHUB_REPO` | Target repo, e.g. `nafi-osmani/superset` |
 
 Create a Devin service user at **Settings → Service Users** with `ManageOrgSessions` permission.
+
+Copy credentials into `.env`:
+
+```bash
+cp .env.example .env
+# Set DEVIN_API_KEY, DEVIN_ORG_ID, GITHUB_TOKEN, GITHUB_REPO
+# Use: gh auth token  (to populate GITHUB_TOKEN from gh CLI)
+```
+
+Run GitHub preflight (requires Issues enabled on fork):
+
+```bash
+./scripts/setup_github.sh
+python scripts/create_issues.py --repo nafi-osmani/superset
+```
 
 ## Quick Start
 
