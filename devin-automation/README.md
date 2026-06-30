@@ -66,6 +66,10 @@ Create the 4 demo tech-debt issues in your fork:
 python scripts/create_issues.py --repo your-user/superset
 ```
 
+> **Note:** GitHub Issues must be enabled on your fork (Settings → General → Features → Issues).
+> If issues are disabled, enable them first or create issues manually using the bodies in
+> `scripts/create_issues.py` and apply the `devin-autofix` label.
+
 Issues created (label: `devin-autofix`):
 
 1. Remove deprecated Celery beat `options` fallback in scheduler tasks
