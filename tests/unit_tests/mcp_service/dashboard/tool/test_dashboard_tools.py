@@ -1103,9 +1103,6 @@ async def test_get_dashboard_info_embedded_uuid_none_when_not_embedded(
         assert result.data.get("embedded_uuid") is None
 
 
-# TODO (Phase 3+): Add tests for get_dashboard_available_filters tool
-
-
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
