@@ -2,7 +2,23 @@
 
 Event-driven automation that triggers **Devin** sessions when GitHub issues are labeled `devin-autofix`, remediating real Superset tech-debt items and tracking outcomes via a metrics dashboard.
 
-**Branch:** `c_firstpass` | **Fork:** `nafi-osmani/superset`
+**Repository:** [github.com/nafi-osmani/superset](https://github.com/nafi-osmani/superset)  
+**Branch:** `master` (default)  
+**Solution path:** `devin-automation/`
+
+---
+
+## Submission overview
+
+This fork contains:
+
+| Deliverable | Location |
+|-------------|----------|
+| Docker-packaged automation service | [`devin-automation/`](.) — `Dockerfile`, `docker-compose.yml` |
+| Run / simulate instructions | This README |
+| Forked Apache Superset codebase | Repo root (`superset/`, `.github/`, etc.) |
+| Selected tech-debt issues | GitHub Issues [#6–#9](https://github.com/nafi-osmani/superset/issues) |
+| Devin remediation (example) | [PR #5](https://github.com/nafi-osmani/superset/pull/5) fixes [#8](https://github.com/nafi-osmani/superset/issues/8) |
 
 ---
 
@@ -31,16 +47,59 @@ GitHub Issue (labeled devin-autofix)
 
 ---
 
+## Demo issues and remediation status
+
+These issues target real tech debt in Apache Superset. Apply the **`devin-autofix`** label in GitHub to trigger remediation (or use the simulate script below).
+
+| Issue | Title | Status |
+|-------|-------|--------|
+| [#6](https://github.com/nafi-osmani/superset/issues/6) | Remove deprecated Celery scheduler fallback | Open — pending remediation |
+| [#7](https://github.com/nafi-osmani/superset/issues/7) | Remove stale MCP TODO comments | Open — pending remediation |
+| [#8](https://github.com/nafi-osmani/superset/issues/8) | Fix typo in PR lint workflow | **Remediated** — [PR #5](https://github.com/nafi-osmani/superset/pull/5) |
+| [#9](https://github.com/nafi-osmani/superset/issues/9) | Rename migration conflict workflow file | Open — pending remediation |
+
+> **Label note:** If issues were created without the `devin-autofix` label, add it manually in the GitHub UI (Labels → `devin-autofix`) before using the real webhook trigger.
+
+---
+
 ## Prerequisites
 
 | Requirement | How to get it |
 |-------------|---------------|
-| Devin service user | [app.devin.ai](https://app.devin.ai) → Settings → Service Users → create with **`ManageOrgSessions`** |
+| Devin service user | [app.devin.ai](https://app.devin.ai) → Settings → Service Users → **`ManageOrgSessions`** |
 | `DEVIN_API_KEY` | Starts with `cog_` — shown once at creation |
-| `DEVIN_ORG_ID` | On the Service Users settings page (e.g. `org-...`) |
-| `GITHUB_TOKEN` | PAT with `repo` + `issues:write`, or run `gh auth token` |
+| `DEVIN_ORG_ID` | Service Users settings page (e.g. `org-...`) |
+| `GITHUB_TOKEN` | PAT with `repo` + `issues:write`, or `gh auth token` |
 | GitHub Issues enabled | Fork → Settings → General → Features → **Issues** |
-| Python 3.12+ | For local run (or use Docker) |
+| Docker **or** Python 3.12+ | See run options below |
+
+---
+
+## Quick start (evaluators)
+
+```bash
+git clone https://github.com/nafi-osmani/superset.git
+cd superset/devin-automation
+cp .env.example .env
+# Edit .env: set DEVIN_API_KEY, DEVIN_ORG_ID, GITHUB_TOKEN, GITHUB_REPO
+
+docker compose up --build
+```
+
+In a second terminal:
+
+```bash
+cd superset/devin-automation
+pip install httpx
+python scripts/simulate_webhook.py \
+  --issue-number 9 \
+  --repo nafi-osmani/superset \
+  --secret dev-local-secret \
+  --title "Rename DB migration conflict workflow file" \
+  --body "Rename check_db_migration_confict.yml to check_db_migration_conflict.yml"
+```
+
+Open **http://localhost:8080/dashboard** to watch the session progress.
 
 ---
 
@@ -65,49 +124,38 @@ DRY_RUN=false
 MAX_ACU_LIMIT=10
 ```
 
-Populate `GITHUB_TOKEN` from gh CLI:
+Populate `GITHUB_TOKEN`:
 
 ```bash
 gh auth login   # if needed
 gh auth token   # paste into .env
 ```
 
-### 2. Install dependencies
+### 2. Install dependencies (local run only)
 
 ```bash
 pip install -r requirements.txt httpx
 ```
 
-### 3. Seed demo issues (optional)
+### 3. Seed issues (optional — already created on this fork)
 
 ```bash
 ./scripts/setup_github.sh
 python scripts/create_issues.py --repo nafi-osmani/superset
 ```
 
-This creates 4 tech-debt issues with the `devin-autofix` label. Demo issues on this fork:
-
-| Issue | Title | Best for |
-|-------|-------|----------|
-| [#6](https://github.com/nafi-osmani/superset/issues/6) | Remove deprecated Celery scheduler fallback | Medium |
-| [#7](https://github.com/nafi-osmani/superset/issues/7) | Remove stale MCP TODO comments | Medium |
-| [#8](https://github.com/nafi-osmani/superset/issues/8) | Fix typo in PR lint workflow | **Fastest fix** |
-| [#9](https://github.com/nafi-osmani/superset/issues/9) | Rename migration conflict workflow file | **Good visual demo** |
-
 ---
 
 ## Run the service
 
-Choose **Docker** or **local uvicorn**.
-
-### Option A: Docker
+### Option A: Docker (recommended for submission)
 
 ```bash
 cd devin-automation
 docker compose up --build
 ```
 
-### Option B: Local (recommended for Cursor / Cloud Agent)
+### Option B: Local uvicorn
 
 ```bash
 cd devin-automation
@@ -116,20 +164,18 @@ export PYTHONPATH=src DATABASE_PATH=./data/remediator.db
 python3 -m uvicorn app:app --host 0.0.0.0 --port 8080 --app-dir src
 ```
 
-Keep this terminal open while the service runs.
-
-### Verify it is running
+### Verify
 
 ```bash
 curl http://localhost:8080/health
 # → {"status":"ok"}
 ```
 
-### Access the dashboard
+### Dashboard
 
 Open **http://localhost:8080/dashboard**
 
-> **Using Cursor with a remote workspace?** Forward port **8080** in the Cursor **Ports** panel. Without forwarding, your browser will show `ERR_CONNECTION_REFUSED` even though the service is running on the remote VM.
+> **Cursor / remote workspace:** Forward port **8080** in the Cursor **Ports** panel. Without forwarding, your browser shows `ERR_CONNECTION_REFUSED` even though the service is running on the remote VM.
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -143,18 +189,19 @@ Open **http://localhost:8080/dashboard**
 
 ## Simulate the workflow (recommended for demo)
 
-Simulates what happens when an issue is labeled `devin-autofix` — **no ngrok or public URL required**.
+Simulates labeling an issue `devin-autofix` — **no ngrok or public URL required**.
 
-### Step 1: Start the service (see above)
+### Step 1: Start the service
 
 Ensure `DRY_RUN=false` in `.env` for a real Devin session.
 
 ### Step 2: Trigger remediation
 
-Use the **actual GitHub issue number** from your fork. Example for issue #9:
+Use the **actual GitHub issue number** from your fork.
+
+**Issue #9** (workflow rename — good visual demo):
 
 ```bash
-cd devin-automation
 python scripts/simulate_webhook.py \
   --issue-number 9 \
   --repo nafi-osmani/superset \
@@ -163,7 +210,7 @@ python scripts/simulate_webhook.py \
   --body "Rename check_db_migration_confict.yml to check_db_migration_conflict.yml"
 ```
 
-For the fastest fix (issue #8):
+**Issue #8** (fastest fix — already has [PR #5](https://github.com/nafi-osmani/superset/pull/5)):
 
 ```bash
 python scripts/simulate_webhook.py \
@@ -174,7 +221,7 @@ python scripts/simulate_webhook.py \
   --body "Fix explicity -> explicitly in .github/workflows/pr-lint.yml line 6."
 ```
 
-### Step 3: Watch the results
+### Step 3: Watch results
 
 Expected response:
 
@@ -186,20 +233,22 @@ Expected response:
 }
 ```
 
-Then:
-
-1. Open **`session_url`** in the Devin UI — watch Devin work
-2. Refresh **http://localhost:8080/dashboard** — job appears as `running`
+1. Open **`session_url`** in the Devin UI
+2. Refresh **http://localhost:8080/dashboard** — job shows `running`
 3. Wait 30–60s, refresh — poller updates status; PR link appears when Devin finishes
 
 ### Dry-run mode (no Devin API calls)
 
-Set `DRY_RUN=true` in `.env`, restart the service, then run the same simulate command. Useful for testing the webhook handler and dashboard without spending ACUs.
+Set `DRY_RUN=true` in `.env`, restart the service, then run the simulate command. Tests webhook handler and dashboard without spending ACUs.
 
-### Trigger all four issues
+### Trigger all four demo issues
 
 ```bash
-./scripts/simulate_all.sh
+for n in 6 7 8 9; do
+  python scripts/simulate_webhook.py --issue-number "$n" \
+    --repo nafi-osmani/superset --secret dev-local-secret
+  sleep 2
+done
 ```
 
 ---
@@ -208,37 +257,36 @@ Set `DRY_RUN=true` in `.env`, restart the service, then run the same simulate co
 
 Same handler as simulate — requires a **publicly reachable** webhook URL.
 
-1. Start the service locally
+1. Start the service
 2. Expose port 8080: `ngrok http 8080`
 3. Fork → **Settings → Webhooks → Add webhook**
    - **Payload URL:** `https://<ngrok-id>.ngrok-free.app/webhooks/github`
    - **Content type:** `application/json`
-   - **Secret:** `dev-local-secret` (must match `GITHUB_WEBHOOK_SECRET` in `.env`)
+   - **Secret:** `dev-local-secret` (must match `GITHUB_WEBHOOK_SECRET`)
    - **Events:** Issues
-4. Open an issue on GitHub → add label **`devin-autofix`**
+4. Open an issue → add label **`devin-autofix`**
 
-> Merging branch `c_firstpass` is **not required**. Devin clones the default branch where the tech debt already exists.
+No special branch merge is required — Devin clones `master` where the tech debt exists.
 
 ---
 
 ## Preflight checks
 
-Run before a demo or Loom recording:
-
 ```bash
+cd devin-automation
+
 # 1. Devin API connectivity
 set -a && source .env && set +a
 curl -sf -X POST "https://api.devin.ai/v3/organizations/${DEVIN_ORG_ID}/sessions" \
   -H "Authorization: Bearer ${DEVIN_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"Connectivity test only.","max_acu_limit":1}'
-# → should return session_id and url
 
 # 2. Service health
 curl http://localhost:8080/health
 
 # 3. Clean dashboard (optional)
-rm -f data/remediator.db && restart uvicorn
+rm -f data/remediator.db   # then restart the service
 
 # 4. GitHub preflight
 ./scripts/setup_github.sh
@@ -248,11 +296,9 @@ rm -f data/remediator.db && restart uvicorn
 
 ## Observability
 
-Engineering leaders can answer "is this working?" via:
-
 - **`/dashboard`** — active/completed/failed, success rate, avg duration, ACU spend, PR links
-- **`/api/metrics`** — same data as JSON
-- **Structured logs** — stdout from uvicorn or `docker compose logs -f`
+- **`/api/metrics`** — same data as JSON for leadership reporting
+- **Structured logs** — `docker compose logs -f` or uvicorn stdout
 - **GitHub issue comments** — session started + completion status (when `GITHUB_TOKEN` is set)
 
 Example metrics:
@@ -276,13 +322,13 @@ Example metrics:
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `ERR_CONNECTION_REFUSED` on dashboard | Browser hitting local machine, not remote VM | Forward port **8080** in Cursor Ports panel |
-| `502` on webhook | Invalid Devin credentials | Check `DEVIN_API_KEY` and `DEVIN_ORG_ID` in `.env` |
-| `"status": "skipped"` | Active session already running for that issue | Wait for completion or use a different issue number |
-| `"status": "ignored"` | Wrong label | Ensure `devin-autofix` label in payload |
-| `create_issues.py` fails | Issues disabled on fork | Enable at fork Settings → General → Features |
-| Dashboard shows stale jobs | Old SQLite data | `rm data/remediator.db` and restart service |
-| PR not appearing quickly | Devin still working | Show running session in Devin UI; poller updates every 30s |
+| `ERR_CONNECTION_REFUSED` on dashboard | Browser not reaching remote VM | Forward port **8080** in Cursor Ports panel |
+| `502` on webhook | Invalid Devin credentials | Check `DEVIN_API_KEY` and `DEVIN_ORG_ID` |
+| `"status": "skipped"` | Active session for that issue | Wait or use a different issue number |
+| `"status": "ignored"` | Wrong label in payload | Use `devin-autofix` |
+| `create_issues.py` fails | Issues disabled | Enable at fork Settings → Features |
+| Dashboard shows stale jobs | Old SQLite data | `rm data/remediator.db` and restart |
+| PR slow to appear | Devin still working | Show Devin UI; poller updates every 30s |
 
 ---
 
@@ -307,7 +353,7 @@ devin-automation/
     ├── create_issues.py  # Seed GitHub issues
     ├── setup_github.sh   # GitHub preflight checks
     ├── simulate_webhook.py  # Simulate labeled issue (demo)
-    └── simulate_all.sh   # Trigger all 4 demo issues
+    └── simulate_all.sh   # Trigger all demo issues (update issue numbers)
 ```
 
 ---
