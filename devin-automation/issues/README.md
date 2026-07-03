@@ -1,25 +1,23 @@
 # Seed Issues for Devin Demo
 
-These four issues represent real tech-debt in Apache Superset. Create them in your fork with the `devin-autofix` label.
+Four tech-debt issues are tracked on this fork. After running `create_issues.py`, apply the **`devin-autofix`** label to each issue (manually in GitHub UI if the API cannot create labels).
+
+## Issues on nafi-osmani/superset
+
+| Issue | Title | Remediation |
+|-------|-------|-------------|
+| [#6](https://github.com/nafi-osmani/superset/issues/6) | Remove deprecated Celery scheduler fallback | Pending |
+| [#7](https://github.com/nafi-osmani/superset/issues/7) | Remove stale MCP TODO comments | Pending |
+| [#8](https://github.com/nafi-osmani/superset/issues/8) | Fix typo in PR lint workflow | [PR #5](https://github.com/nafi-osmani/superset/pull/5) |
+| [#9](https://github.com/nafi-osmani/superset/issues/9) | Rename migration conflict workflow file | Pending |
 
 ## Create via script
 
 ```bash
-gh auth login   # if not already authenticated
-python scripts/create_issues.py --repo YOUR_USER/superset
+gh auth login
+python scripts/create_issues.py --repo nafi-osmani/superset
 ```
 
-## Create manually
+Issue bodies are defined in `scripts/create_issues.py` (`ISSUES` constant).
 
-Apply the `devin-autofix` label to each issue after creation.
-
-| # | Title | Primary file(s) |
-|---|-------|-----------------|
-| 1 | Remove deprecated Celery beat options fallback in scheduler tasks | `superset/tasks/scheduler.py` |
-| 2 | Remove stale MCP filter-tool TODO comments | `tests/unit_tests/mcp_service/...` |
-| 3 | Fix typo in PR lint workflow comment | `.github/workflows/pr-lint.yml` |
-| 4 | Rename DB migration conflict workflow file | `.github/workflows/check_db_migration_confict.yml` |
-
-Issue bodies are embedded in `scripts/create_issues.py` (ISSUES constant).
-
-**Demo tip:** Start with issue #3 — it is the smallest, fastest fix for validating the full loop.
+**Demo tip:** Issue #9 is best for a live trigger; #8 already has a Devin-opened PR.
