@@ -81,7 +81,12 @@ class UpdateDatabaseCommand(BaseCommand):
         force_update: bool = False
         try:
             original_catalog = self._model.get_default_catalog()
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Failed to get default catalog for database %s, forcing update",
+                self._model.database_name,
+                exc_info=True,
+            )
             original_catalog = None
             force_update = True
 
@@ -113,7 +118,10 @@ class UpdateDatabaseCommand(BaseCommand):
                 db_connection=database,
             ).run()
         except (OAuth2RedirectError, MissingOAuth2TokenError):
-            pass
+            logger.info(
+                "Skipping permission sync for database %s due to OAuth2 redirect",
+                database.database_name,
+            )
 
         return database
 

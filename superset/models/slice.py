@@ -263,9 +263,12 @@ class Slice(  # pylint: disable=too-many-public-methods
         form_data: dict[str, Any] = {}
         try:
             form_data = json.loads(self.params)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Malformed json in slice's params", exc_info=True)
-            logger.exception(ex)
+        except (TypeError, json.JSONDecodeError):
+            logger.warning(
+                "Malformed JSON in params for slice %s",
+                self.id,
+                exc_info=True,
+            )
         form_data.update(
             {
                 "slice_id": self.id,

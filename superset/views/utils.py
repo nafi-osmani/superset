@@ -196,6 +196,7 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     try:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
+        logger.debug("Failed to parse request JSON data")
         return {}
 
 
@@ -284,7 +285,7 @@ def add_sqllab_custom_filters(form_data: dict[Any, Any]) -> Any:
                     if filters:
                         form_data.update({"filters": filters})
     except (TypeError, json.JSONDecodeError):
-        data = {}
+        logger.debug("Failed to parse SQLLab custom filters from request data")
 
 
 def get_datasource_info(
