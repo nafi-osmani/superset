@@ -16,12 +16,11 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
 from superset import security_manager
-from superset.commands.base import BaseCommand
+from superset.commands.base import BaseBulkDeleteCommand, BaseCommand
 from superset.commands.dashboard.exceptions import (
     DashboardDeleteEmbeddedFailedError,
     DashboardDeleteFailedError,
@@ -54,22 +53,13 @@ class DeleteEmbeddedDashboardCommand(BaseCommand):
             raise DashboardForbiddenError() from ex
 
 
-class DeleteDashboardCommand(BaseCommand):
-    def __init__(self, model_ids: list[int]):
-        self._model_ids = model_ids
-        self._models: Optional[list[Dashboard]] = None
-
-    @transaction(on_error=partial(on_error, reraise=DashboardDeleteFailedError))
-    def run(self) -> None:
-        self.validate()
-        assert self._models
-        DashboardDAO.delete(self._models)
+class DeleteDashboardCommand(BaseBulkDeleteCommand):
+    dao = DashboardDAO
+    not_found_error = DashboardNotFoundError
+    forbidden_error = DashboardForbiddenError
 
     def validate(self) -> None:
-        # Validate/populate model exists
-        self._models = DashboardDAO.find_by_ids(self._model_ids)
-        if not self._models or len(self._models) != len(self._model_ids):
-            raise DashboardNotFoundError()
+        super().validate()
         # Check there are no associated ReportSchedules
         if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
             report_names = [report.name for report in reports]
@@ -79,9 +69,6 @@ class DeleteDashboardCommand(BaseCommand):
                     report_names=",".join(report_names),
                 )
             )
-        # Check ownership
-        for model in self._models:
-            try:
-                security_manager.raise_for_ownership(model)
-            except SupersetSecurityException as ex:
-                raise DashboardForbiddenError() from ex
+
+    def _get_delete_failed_error(self) -> type[Exception]:
+        return DashboardDeleteFailedError

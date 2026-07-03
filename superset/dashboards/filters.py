@@ -34,6 +34,11 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import (
+    BaseCertifiedFilter,
+    BaseCreatedByMeFilter,
+    BaseHasCreatedByFilter,
+)
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -52,19 +57,9 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
-class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    name = _("Created by me")
+class DashboardCreatedByMeFilter(BaseCreatedByMeFilter):  # pylint: disable=too-few-public-methods
     arg_name = "dashboard_created_by_me"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        return query.filter(
-            or_(
-                Dashboard.created_by_fk  # pylint: disable=comparison-with-callable
-                == get_user_id(),
-                Dashboard.changed_by_fk  # pylint: disable=comparison-with-callable
-                == get_user_id(),
-            )
-        )
+    model = Dashboard
 
 
 class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
@@ -225,13 +220,13 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
 
-class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardCertifiedFilter(BaseCertifiedFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all certified dashboards
     """
 
-    name = _("Is certified")
     arg_name = "dashboard_is_certified"
+    model = Dashboard
 
     def apply(self, query: Query, value: Any) -> Query:
         if value is True:
@@ -251,17 +246,10 @@ class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-me
         return query
 
 
-class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardHasCreatedByFilter(BaseHasCreatedByFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all dashboards created by user
     """
 
-    name = _("Has created by")
     arg_name = "dashboard_has_created_by"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        if value is True:
-            return query.filter(and_(Dashboard.created_by_fk.isnot(None)))
-        if value is False:
-            return query.filter(and_(Dashboard.created_by_fk.is_(None)))
-        return query
+    model = Dashboard

@@ -15,34 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from functools import partial
-from typing import Optional
 
-from superset.commands.base import BaseCommand
+from superset.commands.base import BaseBulkDeleteCommand
 from superset.commands.css.exceptions import (
     CssTemplateDeleteFailedError,
     CssTemplateNotFoundError,
 )
 from superset.daos.css import CssTemplateDAO
-from superset.models.core import CssTemplate
-from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
 
-class DeleteCssTemplateCommand(BaseCommand):
-    def __init__(self, model_ids: list[int]):
-        self._model_ids = model_ids
-        self._models: Optional[list[CssTemplate]] = None
+class DeleteCssTemplateCommand(BaseBulkDeleteCommand):
+    dao = CssTemplateDAO
+    not_found_error = CssTemplateNotFoundError
 
-    @transaction(on_error=partial(on_error, reraise=CssTemplateDeleteFailedError))
-    def run(self) -> None:
-        self.validate()
-        assert self._models
-        CssTemplateDAO.delete(self._models)
-
-    def validate(self) -> None:
-        # Validate/populate model exists
-        self._models = CssTemplateDAO.find_by_ids(self._model_ids)
-        if not self._models or len(self._models) != len(self._model_ids):
-            raise CssTemplateNotFoundError()
+    def _get_delete_failed_error(self) -> type[Exception]:
+        return CssTemplateDeleteFailedError

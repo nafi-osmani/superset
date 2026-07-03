@@ -32,6 +32,11 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import (
+    BaseCertifiedFilter,
+    BaseCreatedByMeFilter,
+    BaseHasCreatedByFilter,
+)
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -84,20 +89,13 @@ class ChartTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-metho
     model = Slice
 
 
-class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class ChartCertifiedFilter(BaseCertifiedFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all certified charts
     """
 
-    name = _("Is certified")
     arg_name = "chart_is_certified"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        if value is True:
-            return query.filter(and_(Slice.certified_by.isnot(None)))
-        if value is False:
-            return query.filter(and_(Slice.certified_by.is_(None)))
-        return query
+    model = Slice
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -128,35 +126,18 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
 
-class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class ChartHasCreatedByFilter(BaseHasCreatedByFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all charts created by user
     """
 
-    name = _("Has created by")
     arg_name = "chart_has_created_by"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        if value is True:
-            return query.filter(and_(Slice.created_by_fk.isnot(None)))
-        if value is False:
-            return query.filter(and_(Slice.created_by_fk.is_(None)))
-        return query
+    model = Slice
 
 
-class ChartCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    name = _("Created by me")
+class ChartCreatedByMeFilter(BaseCreatedByMeFilter):  # pylint: disable=too-few-public-methods
     arg_name = "chart_created_by_me"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        return query.filter(
-            or_(
-                Slice.created_by_fk  # pylint: disable=comparison-with-callable
-                == get_user_id(),
-                Slice.changed_by_fk  # pylint: disable=comparison-with-callable
-                == get_user_id(),
-            )
-        )
+    model = Slice
 
 
 class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
